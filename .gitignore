@@ -1,0 +1,31 @@
+# 제출 폴더는 git에 올리지 않음 (별도 zip으로 제출)
+submit/
+
+# API 키 / 환경변수 (절대 커밋 금지)
+.env
+.env.*
+*.env
+!.env.example
+.streamlit/secrets.toml
+
+# 대용량 데이터 (SST 등)
+# 결과 nc(수백 MB)도 git에 넣지 않는다 — src/run_pipeline.py 로 재생성 가능.
+# 공유가 필요하면 릴리스 아티팩트나 드라이브를 사용할 것.
+data/raw/
+*.nc
+*.nc.part
+
+# 로컬 설정 / 캐시 / OS 부산물
+.claude/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# 로그
+*.log
+
+# Natural Earth 해안선(7MB, public domain)은 오프라인 실행을 위해 저장소에 동봉한다.
+# (없으면 src/basemap.py 가 자동 다운로드하지만, 방화벽 환경에선 실패)
+!data/naturalearth/
