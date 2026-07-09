@@ -16,14 +16,15 @@ pip install -r requirements.txt
 streamlit run app.py          # → http://localhost:8501
 ```
 
-이 PC에 Claude Code CLI(`claude`)가 로그인돼 있으면 LLM 어시스턴트가 API 키 없이 바로 동작합니다.
-CLI가 없을 때의 폴백 키 설정:
+LLM 어시스턴트는 **OpenRouter API(Nemotron)** 를 사용합니다 — 프로젝트 루트 `.env` 에 키 한 줄이면 됩니다:
 
 ```bash
-cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-# OPENAI_API_KEY  : LLM 어시스턴트 폴백(기본은 로컬 Claude Code CLI)
-# ANTHROPIC_API_KEY : 보고서 AI 서술
+# .env
+OPENROUTER_API_KEY=sk-or-...
+# OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free   # 선택(기본값)
 ```
+
+보고서 AI 서술은 별도로 `ANTHROPIC_API_KEY` 가 필요합니다(.env 또는 secrets.toml).
 
 뉴스 수집 API 키(네이버·공공데이터포털 등)는 `.env` 에 둡니다 — `config.py` 참고.
 

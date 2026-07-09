@@ -7,29 +7,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-try:
-    from utils.style import apply
-    from utils.chat_widget import inject
-except Exception:
-    def apply():
-        pass
+from utils.style import page_header
+from utils.viz import style_fig, ACCENT, ACCENT_SOFT
 
-    def inject():
-        pass
-
-
-st.set_page_config(page_title="SST Timeseries", page_icon="📈", layout="wide")
-try:
-    apply()
-except Exception:
-    pass
-try:
-    inject()
-except Exception:
-    pass
-
-st.title("SST 시계열")
-st.caption("KHOA SST 일별 평균을 웹에서 직접 확인하는 인터랙티브 시계열 뷰입니다.")
+page_header("SST 시계열", "KHOA SST 일별 평균을 웹에서 직접 확인하는 인터랙티브 시계열 뷰입니다.", "📈")
 
 _ROOT = Path(__file__).resolve().parent.parent
 CSV_DIR = _ROOT / "data" / "results" / "sst_analysis" / "timeseries"
@@ -98,12 +79,14 @@ m4.metric("최저 평균 SST", f"{lo['mean_sst']:.2f} °C", help=f"{lo['date']:%
 
 fig = go.Figure()
 if show_max and "max_sst" in d.columns:
+    # 같은 변수(SST)의 보조 통계 — 동일 색상 계열의 옅은 톤으로 후퇴
     fig.add_trace(
         go.Bar(
             x=d["date"],
             y=d["max_sst"],
-            name="domain-max SST",
-            marker_color="rgba(127,179,213,0.7)",
+            name="일별 최고 SST",
+            marker_color=ACCENT_SOFT,
+            hovertemplate="최고 %{y:.2f}°C<extra></extra>",
         )
     )
 fig.add_trace(
@@ -111,28 +94,26 @@ fig.add_trace(
         x=d["date"],
         y=d["mean_sst"],
         mode="lines+markers",
-        name="domain-mean SST",
-        line=dict(color="#c0392b", width=2),
-        marker=dict(size=6),
+        name="일별 평균 SST",
+        line=dict(color=ACCENT, width=2.4),
+        marker=dict(size=6, color=ACCENT, line=dict(width=1, color="#041529")),
+        hovertemplate="평균 %{y:.2f}°C<extra></extra>",
     )
 )
 
 fig.update_layout(
-    title=f"KHOA SST domain-mean daily time series ({start:%Y-%m-%d} ~ {end:%Y-%m-%d})",
-    xaxis_title="Date",
-    yaxis_title="Sea surface temperature (°C)",
+    title=dict(
+        text=f"KHOA 영역 평균 일별 SST ({start:%Y-%m-%d} ~ {end:%Y-%m-%d})",
+        font=dict(size=14),
+    ),
+    xaxis_title=None,
+    yaxis_title="해수면온도 (°C)",
     yaxis=dict(range=[ymin, ymax]),
     hovermode="x unified",
-    height=520,
-    margin=dict(l=20, r=20, t=60, b=20),
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
 )
-fig.update_xaxes(
-    tickformat="%m-%d",
-    showgrid=True,
-    gridcolor="rgba(255,255,255,0.08)",
-)
-fig.update_yaxes(showgrid=True, gridcolor="rgba(255,255,255,0.08)")
+style_fig(fig, height=520)
+fig.update_layout(margin=dict(l=20, r=20, t=56, b=20), bargap=0.35)
+fig.update_xaxes(tickformat="%m-%d")
 
 st.plotly_chart(fig, use_container_width=True)
 

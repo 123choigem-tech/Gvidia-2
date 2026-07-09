@@ -11,13 +11,9 @@ import config
 from agents.alert_agent import get_active_alerts
 from agents.report_agent import run as run_report
 from utils.alert_widget import inject_alerts
-from utils.chat_widget import inject
-from utils.style import apply, card, hero, section
+from utils.style import card, hero, section
 
 
-st.set_page_config(page_title="Pipeline", page_icon="🔗", layout="wide")
-apply()
-inject()
 inject_alerts(get_active_alerts(demo=True))
 
 

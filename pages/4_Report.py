@@ -5,16 +5,11 @@ import streamlit as st
 import config
 from agents.alert_agent import get_active_alerts
 from utils.alert_widget import inject_alerts
-from utils.chat_widget import inject
-from utils.style import apply
+from utils.style import page_header, section
 
-st.set_page_config(page_title="Report", page_icon="📄", layout="wide")
-apply()
-inject()
 inject_alerts(get_active_alerts(demo=True))
 
-st.title("📄 보고서 생성")
-st.caption("실제 데이터와 보고서 생성 agent를 연결해 Word/PDF 보고서를 만듭니다.")
+page_header("보고서 생성", "실제 데이터와 보고서 생성 agent를 연결해 Word/PDF 보고서를 만듭니다.", "📄")
 
 DISASTER_DB = config.PROCESSED_DIR / "disaster_db" / "disaster_events.csv"
 SUMMARY_DIR = config.DATA_DIR / "results" / "summary"
@@ -35,7 +30,7 @@ def _has_anthropic_key() -> bool:
         return False
 
 
-st.subheader("보고서 생성")
+section("생성 옵션", "⚙️")
 
 col_a, col_b = st.columns([1, 1])
 with col_a:
@@ -96,8 +91,7 @@ if st.button("보고서 생성", type="primary", use_container_width=True):
 if "report_result" in st.session_state:
     result = st.session_state["report_result"]
     stem = result.get("filename_stem", "report")
-    st.markdown("---")
-    st.subheader("다운로드")
+    section("다운로드", "⬇️")
     d1, d2, d3 = st.columns(3)
     if result.get("docx") and result["docx"].get("bytes"):
         d1.download_button(

@@ -392,16 +392,27 @@ def _build_pdf(
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
+    # 한글 폰트 — 저장소에 번들된 나눔고딕(OFL) 우선. 없으면 시스템 폰트 탐색.
     font_name = "Helvetica"
-    for fp in ["C:/Windows/Fonts/malgun.ttf", "C:/Windows/Fonts/NanumGothic.ttf",
-               "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"]:
-        if Path(fp).exists():
+    bold_name = "Helvetica-Bold"
+    for fp in [_ROOT / "assets" / "fonts" / "NanumGothic-Regular.ttf",
+               Path("C:/Windows/Fonts/malgun.ttf"),
+               Path("C:/Windows/Fonts/NanumGothic.ttf"),
+               Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf")]:
+        if fp.exists():
             try:
-                pdfmetrics.registerFont(TTFont("KorFont", fp))
-                font_name = "KorFont"
+                pdfmetrics.registerFont(TTFont("KorFont", str(fp)))
+                font_name = bold_name = "KorFont"
             except Exception:
-                pass
+                continue
             break
+    bold_fp = _ROOT / "assets" / "fonts" / "NanumGothic-Bold.ttf"
+    if font_name == "KorFont" and bold_fp.exists():
+        try:
+            pdfmetrics.registerFont(TTFont("KorFontBold", str(bold_fp)))
+            bold_name = "KorFontBold"
+        except Exception:
+            pass
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
@@ -409,11 +420,11 @@ def _build_pdf(
                             topMargin=20*mm, bottomMargin=20*mm)
 
     kor  = ParagraphStyle("kor",  fontName=font_name, fontSize=9,  leading=15)
-    h1   = ParagraphStyle("h1",   fontName=font_name, fontSize=15, leading=20, spaceAfter=4,
+    h1   = ParagraphStyle("h1",   fontName=bold_name, fontSize=15, leading=20, spaceAfter=4,
                            textColor=colors.HexColor("#041529"))
-    h2   = ParagraphStyle("h2",   fontName=font_name, fontSize=12, leading=17, spaceAfter=3,
+    h2   = ParagraphStyle("h2",   fontName=bold_name, fontSize=12, leading=17, spaceAfter=3,
                            textColor=colors.HexColor("#0a3660"))
-    bold = ParagraphStyle("bold", fontName=font_name, fontSize=9,  leading=15, fontStyle="bold")
+    bold = ParagraphStyle("bold", fontName=bold_name, fontSize=9,  leading=15)
 
     def _table(data, col_widths=None):
         t = Table(data, colWidths=col_widths)
@@ -421,6 +432,7 @@ def _build_pdf(
             ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#0a3660")),
             ("TEXTCOLOR",  (0,0), (-1,0), colors.white),
             ("FONTNAME",   (0,0), (-1,-1), font_name),
+            ("FONTNAME",   (0,0), (-1,0),  bold_name),   # 헤더 행은 볼드
             ("FONTSIZE",   (0,0), (-1,-1), 8),
             ("ROWBACKGROUNDS", (0,1), (-1,-1),
              [colors.white, colors.HexColor("#eef3f8")]),

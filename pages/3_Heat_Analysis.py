@@ -6,17 +6,13 @@ import streamlit as st
 import config
 from agents.alert_agent import get_active_alerts
 from utils.alert_widget import inject_alerts
-from utils.chat_widget import inject
 from utils.sst_stats import CONSEC_MIN, DEFAULT_THRESHOLD, FREQ_MIN, hot_stats, load_region_data
-from utils.style import apply
+from utils.style import page_header
+from utils.viz import style_fig, ACCENT, WARN
 
-st.set_page_config(page_title="Heat Analysis", page_icon="🌡️", layout="wide")
-apply()
-inject()
 inject_alerts(get_active_alerts(demo=True))
 
-st.title("🌡️ 해수면온도 분석")
-st.caption("실제 수집된 SST CSV를 바탕으로 지역별 추세와 시각자료를 함께 확인합니다.")
+page_header("해수면온도 분석", "실제 수집된 SST CSV를 바탕으로 지역별 추세와 시각자료를 함께 확인합니다.", "🌡️")
 
 RESULTS_DIR = config.DATA_DIR / "results"
 TS_DIR = RESULTS_DIR / "sst_analysis" / "timeseries"
@@ -72,16 +68,22 @@ with tab1:
     fig = go.Figure()
     for region in selected:
         df = sst_data[region].sort_values("date")
-        fig.add_trace(go.Scatter(x=df["date"], y=df["sst"], mode="lines", name=region))
-    fig.add_hline(y=threshold, line_dash="dash", line_color="#ff6b35")
+        fig.add_trace(go.Scatter(
+            x=df["date"], y=df["sst"], mode="lines", name=region,
+            line=dict(width=2.2),
+        ))
+    fig.add_hline(
+        y=threshold, line_dash="dash", line_color=WARN, line_width=1.5,
+        annotation_text=f"고수온 기준 {threshold:.1f}℃",
+        annotation_position="top left",
+        annotation_font=dict(size=11.5, color=WARN),
+    )
     fig.update_layout(
         xaxis_title="날짜",
         yaxis_title="SST (℃)",
         hovermode="x unified",
-        height=360,
-        margin=dict(t=10, b=20, l=20, r=10),
-        legend=dict(orientation="h", y=-0.2),
     )
+    style_fig(fig, height=380)
     st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
@@ -94,16 +96,11 @@ with tab2:
             y="location",
             orientation="h",
             labels={"count": "언급 수", "location": "지역"},
-            color="count",
-            color_continuous_scale=["#bfefff", "#00c2d4", "#005f6e"],
         )
-        fig2.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            showlegend=False,
-            height=320,
-            margin=dict(l=10, r=10, t=10, b=10),
-        )
+        # 명목형(지역) 막대 — 길이가 이미 값을 표현하므로 단일 색으로 통일
+        fig2.update_traces(marker_color=ACCENT, hovertemplate="%{y}: %{x}건<extra></extra>")
+        style_fig(fig2, height=320, show_legend=False)
+        fig2.update_layout(bargap=0.32)
         st.plotly_chart(fig2, use_container_width=True)
     else:
         st.info("지역 빈도 파일이 없습니다.")

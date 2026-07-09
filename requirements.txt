@@ -2,7 +2,7 @@
 # 설치: pip install -r requirements.txt
 
 # --- 공통 / 웹 UI ---
-streamlit>=1.30.0
+streamlit>=1.36.0  # st.navigation / st.Page 사용
 pandas>=2.0.0
 requests>=2.31.0
 python-dotenv>=1.0.0

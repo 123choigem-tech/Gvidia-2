@@ -3,8 +3,7 @@
 - 화면 오른쪽에 대화형 패널이 고정되고, 가장자리 화살표(◀/▶)로 열고 닫는다
   (좌우 슬라이드 애니메이션).
 - 메시지 영역이 화면 높이를 꽉 채우고 입력창은 항상 하단에 붙는다.
-- 백엔드는 utils/chatbot.ask_stream() — 로컬 Claude Code CLI 우선,
-  없으면 OpenAI API 폴백.
+- 백엔드는 utils/chatbot.ask_stream() — OpenRouter(Nemotron) 전용.
 - inject() 시그니처는 그대로라 각 페이지 수정이 필요 없다.
 """
 import html as _html
@@ -138,7 +137,7 @@ def inject():
     # 패널은 항상 렌더하고 CSS transform 으로 슬라이드 (열림/닫힘 애니메이션)
     with st.container(key="chat_panel"):
         status = providers[0][1] if len(providers) == 1 else (
-            "" if providers else "미설정 — claude CLI 로그인 또는 OPENROUTER/OPENAI API 키 필요")
+            "" if providers else "미설정 — `.env` 에 OPENROUTER_API_KEY 필요")
         st.markdown(
             f'<div class="chat-title">🌊 고수온 LLM 어시스턴트</div>'
             + (f'<div class="chat-status">{"🟢" if ok else "🔴"} {status}</div>' if status else ""),

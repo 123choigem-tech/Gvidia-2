@@ -29,3 +29,6 @@ __pycache__/
 # Natural Earth 해안선(7MB, public domain)은 오프라인 실행을 위해 저장소에 동봉한다.
 # (없으면 src/basemap.py 가 자동 다운로드하지만, 방화벽 환경에선 실패)
 !data/naturalearth/
+
+# 보고서 생성 결과물(런타임 산출물)
+data/results/summary/

@@ -1,15 +1,11 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from utils.style import apply
-from utils.chat_widget import inject
+from utils.style import page_header, section
 from utils.region_extractor import load_disaster_events, extract_regions
-from utils.viz import make_frequency_map
+from utils.viz import make_frequency_map, style_fig, ACCENT
 
-st.set_page_config(page_title="Disaster Areas", page_icon="📰", layout="wide")
-apply()
-inject()
-st.title("📰 Disaster Areas — 재난 뉴스 & 관심지역")
+page_header("재난 뉴스 · 관심지역", "재난 뉴스에서 지역을 추출해 기사 분포·빈도·지도를 확인합니다.", "📰")
 
 # 실제 크롤링 데이터 로드 (없으면 샘플 fallback은 region_extractor 내부에서 처리)
 @st.cache_data(ttl=300)
@@ -56,46 +52,58 @@ filt_freq = (_loc.groupby("location").size().reset_index(name="count")
              .dropna(subset=["lat", "lon"])
              .sort_values("count", ascending=False))
 
-st.markdown("---")
-
 # 뉴스 테이블
-st.subheader("📋 뉴스 기사 목록")
+section("뉴스 기사 목록", "📋")
 show_cols = [c for c in ["date", "location", "keyword", "title", "url"] if c in filtered.columns]
 st.dataframe(filtered[show_cols], use_container_width=True)
-
-st.markdown("---")
 
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("📊 발생 위치 빈도")
+    section("발생 위치 빈도", "📊")
     if not filt_freq.empty:
         import plotly.express as px
         fig = px.bar(
             filt_freq.sort_values("count", ascending=True).head(20),
             x="count", y="location", orientation="h",
             labels={"count": "발생 횟수", "location": "지역"},
-            color="count", color_continuous_scale="teal",
         )
-        fig.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font_color="#c8e6f0", showlegend=False,
-        )
+        # 명목형(지역) 막대 — 길이가 이미 값을 표현하므로 단일 색으로 통일
+        fig.update_traces(marker_color=ACCENT, hovertemplate="%{y}: %{x}건<extra></extra>")
+        style_fig(fig, show_legend=False)
+        fig.update_layout(bargap=0.32)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("선택한 기간에 해당하는 데이터가 없습니다.")
 
 with col2:
-    st.subheader("🏆 관심지역 TOP N")
+    section("관심지역 TOP N", "🏆")
     top_n = st.slider("TOP N", 3, 15, 5)
     top_regions = filt_freq.sort_values("count", ascending=False).head(top_n)
-    for rank, (_, row) in enumerate(top_regions.iterrows(), 1):
-        st.markdown(f"**{rank}위** {row['location']} — {int(row['count'])}건")
-
-st.markdown("---")
+    if top_regions.empty:
+        st.info("선택한 기간에 해당하는 지역이 없습니다.")
+    else:
+        max_cnt = int(top_regions["count"].max()) or 1
+        rows = []
+        for rank, (_, row) in enumerate(top_regions.iterrows(), 1):
+            cnt = int(row["count"])
+            pct = max(6, round(cnt / max_cnt * 100))
+            top_cls = " top" if rank == 1 else ""
+            rows.append(
+                f'<div class="rank-row{top_cls}">'
+                f'<span class="rank-no">{rank}</span>'
+                f'<span class="rank-name">{row["location"]}</span>'
+                f'<div class="rank-bar"><div style="width:{pct}%;"></div></div>'
+                f'<span class="rank-count">{cnt}건</span>'
+                f"</div>"
+            )
+        st.markdown(
+            f'<div class="ocean-card" style="padding:12px 18px;">{"".join(rows)}</div>',
+            unsafe_allow_html=True,
+        )
 
 # 지도
-st.subheader("🗺️ 관심지역 지도")
+section("관심지역 지도", "🗺️")
 map_df = filt_freq.dropna(subset=["lat", "lon"])
 if map_df.empty:
     st.warning("선택한 기간에 표시할 지역 데이터가 없습니다.")

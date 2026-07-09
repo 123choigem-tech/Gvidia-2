@@ -20,7 +20,7 @@ REGION_FREQ = _ROOT / "data" / "results" / "frequency" / "region_frequency.csv"
 DISASTER_DB = _ROOT / "data" / "processed" / "disaster_db" / "disaster_events.csv"
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_MODEL = "nvidia/llama-3.1-nemotron-70b-instruct"
+DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"  # 무료 티어 (2026-07 확인)
 
 SYSTEM_PROMPT = """당신은 '고수온 연안재해 모니터링 플랫폼'의 해양 기상 전문 AI 어시스턴트입니다.
 
