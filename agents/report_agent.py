@@ -388,7 +388,7 @@ def _build_pdf(
     from reportlab.lib import colors
     from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
                                     Table, TableStyle, HRFlowable,
-                                    Image as RLImage, PageBreak)
+                                    Image as RLImage, KeepTogether)
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
@@ -431,8 +431,8 @@ def _build_pdf(
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
-                            leftMargin=20*mm, rightMargin=20*mm,
-                            topMargin=20*mm, bottomMargin=20*mm)
+                            leftMargin=15*mm, rightMargin=15*mm,
+                            topMargin=15*mm, bottomMargin=15*mm)
 
     kor  = ParagraphStyle("kor",  fontName=font_name, fontSize=9,  leading=15)
     h1   = ParagraphStyle("h1",   fontName=bold_name, fontSize=15, leading=20, spaceAfter=4,
@@ -463,7 +463,7 @@ def _build_pdf(
 
     # 표지
     story += [
-        Spacer(1, 8*mm),
+        Spacer(1, 2*mm),
         Paragraph(title, h1),
         Paragraph(f"생성일: {datetime.now().strftime('%Y-%m-%d %H:%M')}  |  "
                   f"기간: {_analysis_period()[0]} ~ {_analysis_period()[1]}  |  고수온 기준: {threshold}°C", kor),
@@ -528,75 +528,88 @@ def _build_pdf(
         tdata = [["순위", "지역", "발생 건수"]]
         for i, (_, r) in enumerate(show.iterrows(), 1):
             tdata.append([str(i), str(r["location"]), str(int(r["count"]))])
-        story.append(_table(tdata, [20*mm, 100*mm, 50*mm]))
+        story.append(_table(tdata, [20*mm, 106*mm, 54*mm]))
         story.append(Spacer(1, 5*mm))
         # 관심지역 지도
         try:
             map_png = _make_region_map_png(freq_df)
-            story.append(Paragraph("관심지역 분포 지도 (뉴스 크롤링 기반)", h2))
-            story.append(_img(map_png, 170*mm, 115*mm))
+            story.append(KeepTogether([
+                Paragraph("관심지역 분포 지도 (뉴스 크롤링 기반)", h2),
+                _img(map_png, 180*mm, 120*mm),
+            ]))
         except Exception:
             pass
 
-    # ── 2페이지: 위성 분석 이미지 3개 ─────────────────────────
-    story.append(PageBreak())
-    story.append(Paragraph(f"위성 SST 공간·시계열 분석 ({_analysis_period()[0]} ~ {_analysis_period()[1]})", h2))
+    # ── 위성 분석 이미지 3개 — 자연 흐름 배치(빈 페이지 없이) ──
+    _sec_title = Paragraph(
+        f"위성 SST 공간·시계열 분석 ({_analysis_period()[0]} ~ {_analysis_period()[1]})", h2)
     imgs_consec = sorted(SST_PERS_DIR.glob("SST_MAXCONSEC*.png"))
     if imgs_consec:
-        story.append(Paragraph("① 고수온 최장 연속 지속일수 분포", h2))
-        story.append(Paragraph(
-            "남해안 연안을 중심으로 28°C 이상이 여러 날 연속 지속된 해역이 형성됨. "
-            "연속 지속일수가 긴 격자일수록 양식생물 피해 위험이 누적.", kor))
-        story.append(_img(imgs_consec[0], 160*mm, 70*mm))
-        story.append(Spacer(1, 3*mm))
+        story.append(KeepTogether([
+            _sec_title,
+            Paragraph("① 고수온 최장 연속 지속일수 분포", h2),
+            Paragraph(
+                "남해안 연안을 중심으로 28°C 이상이 여러 날 연속 지속된 해역이 형성됨. "
+                "연속 지속일수가 긴 격자일수록 양식생물 피해 위험이 누적.", kor),
+            _img(imgs_consec[0], 180*mm, 105*mm),
+            Spacer(1, 3*mm),
+        ]))
+        _sec_title = None
     imgs_freq2 = sorted(SST_PERS_DIR.glob("SST_HOTFREQ*.png"))
     if imgs_freq2:
-        story.append(Paragraph("② 고수온 누적 발생빈도 분포 (2일↑)", h2))
-        story.append(Paragraph(
-            f"남해안·제주 연안에서 고수온 발생 빈도가 높게 누적되며, "
-            f"뉴스 기반 관심지역({top5})과 공간적으로 일치함.", kor))
-        story.append(_img(imgs_freq2[0], 160*mm, 70*mm))
-        story.append(Spacer(1, 3*mm))
+        story.append(KeepTogether(
+            ([_sec_title] if _sec_title else []) + [
+            Paragraph("② 고수온 누적 발생빈도 분포 (2일↑)", h2),
+            Paragraph(
+                f"남해안·제주 연안에서 고수온 발생 빈도가 높게 누적되며, "
+                f"뉴스 기반 관심지역({top5})과 공간적으로 일치함.", kor),
+            _img(imgs_freq2[0], 180*mm, 105*mm),
+            Spacer(1, 3*mm),
+        ]))
+        _sec_title = None
     if SST_TS_PNG.exists():
-        story.append(Paragraph("③ 일평균 SST 시계열 트렌드", h2))
+        block = [Paragraph("③ 일평균 SST 시계열 트렌드", h2)]
         if sst_start is not None:
             diff = round(sst_end - sst_start, 1)
-            story.append(Paragraph(
+            block.append(Paragraph(
                 f"7월 초 평균 {sst_start}°C → 8월 말 {sst_end}°C (약 {diff}°C 상승), "
                 f"격자 평균 최고 {sst_max}°C.", kor))
-        story.append(_img(SST_TS_PNG, 160*mm, 55*mm))
+        block.append(_img(SST_TS_PNG, 180*mm, 85*mm))
+        block.append(Spacer(1, 3*mm))
+        story.append(KeepTogether(([_sec_title] if _sec_title else []) + block))
 
-    # ── 3페이지: SST 통계 ──────────────────────────────────────
-    story.append(PageBreak())
+    # ── SST 통계 표 ────────────────────────────────────────────
     if not sst_stat_df.empty:
-        story.append(Paragraph("지역별 SST 통계", h2))
         cols_s = list(sst_stat_df.columns)
         tdata2 = [cols_s] + [[str(v) for v in row] for row in sst_stat_df.values]
-        story.append(_table(tdata2, [170*mm / len(cols_s)] * len(cols_s)))
+        story.append(KeepTogether([
+            Paragraph("지역별 SST 통계", h2),
+            _table(tdata2, [180*mm / len(cols_s)] * len(cols_s)),
+            Spacer(1, 4*mm),
+        ]))
 
-    # ── 4페이지: HOT28 분포 이미지 최근 4장 (2×2) + 결론 ───────
-    story.append(PageBreak())
+    # ── HOT28 분포 이미지 최근 4장 (2×2) + 결론 ────────────────
     hot_imgs = sorted(SST_HOT_IMG.glob("*.png"))[-4:]
     if hot_imgs:
-        story.append(Paragraph("일별 고수온(28°C↑) 분포 지도 (최근 4일)", h2))
+        _hot_title = Paragraph("일별 고수온(28°C↑) 분포 지도 (최근 4일)", h2)
         pairs = [hot_imgs[i:i+2] for i in range(0, len(hot_imgs), 2)]
-        for pair in pairs:
+        for pi, pair in enumerate(pairs):
             cells = []
             for img_p in pair:
-                cells.append([_img(img_p, 78*mm, 55*mm),
+                cells.append([_img(img_p, 86*mm, 86*mm),
                                Paragraph(_hot28_lbl(img_p), kor)])
             while len(cells) < 2:
                 cells.append(["", ""])
             tbl_data = [[cells[0][0], cells[1][0]], [cells[0][1], cells[1][1]]]
-            tbl = RLTable(tbl_data, colWidths=[85*mm, 85*mm])
+            tbl = RLTable(tbl_data, colWidths=[90*mm, 90*mm])
             tbl.setStyle(RLTableStyle([
                 ("ALIGN",  (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
             ]))
-            story.append(tbl)
-        story.append(Spacer(1, 6*mm))
-    story += [
+            story.append(KeepTogether(([_hot_title] if pi == 0 else []) + [tbl]))
+        story.append(Spacer(1, 5*mm))
+    story.append(KeepTogether([
         Paragraph("결론 및 시사점", h2),
         Paragraph(
             f"뉴스 발생 빈도와 위성 고수온 분석이 남해안·제주에서 공간적으로 일치 "
@@ -607,7 +620,7 @@ def _build_pdf(
         Spacer(1, 3*mm),
         Paragraph("※ 출처: 한국언론진흥재단·빅카인즈(뉴스 메타데이터), "
                   "국가해양위성센터 KHOA L4 해수면온도", kor),
-    ]
+    ]))
 
     doc.build(story)
     buf.seek(0)
