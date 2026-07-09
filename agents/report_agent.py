@@ -414,6 +414,21 @@ def _build_pdf(
         except Exception:
             pass
 
+    def _img(path, max_w, max_h, align="CENTER"):
+        """원본 종횡비를 유지한 채 (max_w × max_h) 박스 안에 맞춘 이미지."""
+        try:
+            from PIL import Image as PILImage
+            with PILImage.open(path) as im:
+                iw, ih = im.size
+            ratio = ih / iw
+            w = min(max_w, max_h / ratio)
+            h = w * ratio
+        except Exception:
+            w, h = max_w, max_h
+        img = RLImage(str(path), width=w, height=h)
+        img.hAlign = align
+        return img
+
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
                             leftMargin=20*mm, rightMargin=20*mm,
@@ -519,7 +534,7 @@ def _build_pdf(
         try:
             map_png = _make_region_map_png(freq_df)
             story.append(Paragraph("관심지역 분포 지도 (뉴스 크롤링 기반)", h2))
-            story.append(RLImage(str(map_png), width=170*mm, height=115*mm))
+            story.append(_img(map_png, 170*mm, 115*mm))
         except Exception:
             pass
 
@@ -530,9 +545,9 @@ def _build_pdf(
     if imgs_consec:
         story.append(Paragraph("① 고수온 최장 연속 지속일수 분포", h2))
         story.append(Paragraph(
-            "남해안 연안을 중심으로 28℃ 이상이 여러 날 연속 지속된 해역이 형성됨. "
+            "남해안 연안을 중심으로 28°C 이상이 여러 날 연속 지속된 해역이 형성됨. "
             "연속 지속일수가 긴 격자일수록 양식생물 피해 위험이 누적.", kor))
-        story.append(RLImage(str(imgs_consec[0]), width=160*mm, height=70*mm))
+        story.append(_img(imgs_consec[0], 160*mm, 70*mm))
         story.append(Spacer(1, 3*mm))
     imgs_freq2 = sorted(SST_PERS_DIR.glob("SST_HOTFREQ*.png"))
     if imgs_freq2:
@@ -540,16 +555,16 @@ def _build_pdf(
         story.append(Paragraph(
             f"남해안·제주 연안에서 고수온 발생 빈도가 높게 누적되며, "
             f"뉴스 기반 관심지역({top5})과 공간적으로 일치함.", kor))
-        story.append(RLImage(str(imgs_freq2[0]), width=160*mm, height=70*mm))
+        story.append(_img(imgs_freq2[0], 160*mm, 70*mm))
         story.append(Spacer(1, 3*mm))
     if SST_TS_PNG.exists():
         story.append(Paragraph("③ 일평균 SST 시계열 트렌드", h2))
         if sst_start is not None:
             diff = round(sst_end - sst_start, 1)
             story.append(Paragraph(
-                f"7월 초 평균 {sst_start}℃ → 8월 말 {sst_end}℃ (약 {diff}℃ 상승), "
-                f"격자 평균 최고 {sst_max}℃.", kor))
-        story.append(RLImage(str(SST_TS_PNG), width=160*mm, height=55*mm))
+                f"7월 초 평균 {sst_start}°C → 8월 말 {sst_end}°C (약 {diff}°C 상승), "
+                f"격자 평균 최고 {sst_max}°C.", kor))
+        story.append(_img(SST_TS_PNG, 160*mm, 55*mm))
 
     # ── 3페이지: SST 통계 ──────────────────────────────────────
     story.append(PageBreak())
@@ -568,7 +583,7 @@ def _build_pdf(
         for pair in pairs:
             cells = []
             for img_p in pair:
-                cells.append([RLImage(str(img_p), width=78*mm, height=52*mm),
+                cells.append([_img(img_p, 78*mm, 55*mm),
                                Paragraph(_hot28_lbl(img_p), kor)])
             while len(cells) < 2:
                 cells.append(["", ""])
